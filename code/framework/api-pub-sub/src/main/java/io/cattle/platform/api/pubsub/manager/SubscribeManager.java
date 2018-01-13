@@ -98,7 +98,7 @@ public class SubscribeManager extends AbstractNoOpResourceManager {
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
-        List<?> list = ProxyUtils.proxy((Map) conditions, Subscribe.class).getEventNames();
+        List<?> list = ((Subscribe) ProxyUtils.proxy((Map) conditions, Subscribe.class)).getEventNames();
         if (list != null) {
             for (Object condition : list) {
                 if (condition instanceof Condition) {
