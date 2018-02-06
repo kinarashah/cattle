@@ -65,13 +65,14 @@ public class RegionUtil {
                 if (response.getStatusLine().getStatusCode() != 200) {
                     return null;
                 }
+                System.out.println(response.getEntity().getContent().toString());
                 for (ExternalAccountLink link : jsonMapper.readValue(response.getEntity().getContent(), ExternalAccountLinkData.class).data) {
                     List<String> invalidStates = Arrays.asList(CommonStatesConstants.REMOVED, CommonStatesConstants.REMOVING);
                     if (invalidStates.contains(link.getState())) {
                         continue;
                     }
 
-                    if (link.getLinkedAccountUUID().equalsIgnoreCase(localAccount.getUuid())) {
+                    if (link.getLinkedAccountUuid().equalsIgnoreCase(localAccount.getUuid())) {
                         return link;
                     }
                 }
@@ -294,7 +295,7 @@ public class RegionUtil {
         boolean external;
         String state;
         String id;
-        String linkedAccountUUID;
+        String linkedAccountUuid;
 
         public String getAccountId() {
             return accountId;
@@ -352,12 +353,12 @@ public class RegionUtil {
             this.id = id;
         }
 
-        public String getLinkedAccountUUID() {
-            return linkedAccountUUID;
+        public String getLinkedAccountUuid() {
+            return linkedAccountUuid;
         }
 
-        public void setLinkedAccountUUID(String linkedAccountUUID) {
-            this.linkedAccountUUID = linkedAccountUUID;
+        public void setLinkedAccountUuid(String linkedAccountUuid) {
+            this.linkedAccountUuid = linkedAccountUuid;
         }
 
     }

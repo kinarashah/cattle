@@ -386,6 +386,7 @@ public class RegionServiceImpl implements RegionService {
             if (externalLink == null) {
                 return;
             }
+            System.out.println("dfnjehjfh");
             RegionUtil.deleteExternalAccountLink(targetRegion, externalLink);
         } catch (Exception ex) {
             throw new RuntimeException(String.format("Failed to delete external account link for accountLink [%d]", link.getId()), ex);
