@@ -70,8 +70,8 @@ public class RegionUtil {
                     if (invalidStates.contains(link.getState())) {
                         continue;
                     }
-
-                    if (link.getLinkedAccountUUID().equalsIgnoreCase(localAccount.getUuid())) {
+                    System.out.println("");
+                    if (link.getLinkedAccount()!=null && link.getLinkedAccountUUID().equalsIgnoreCase(localAccount.getUuid())) {
                         return link;
                     }
                 }

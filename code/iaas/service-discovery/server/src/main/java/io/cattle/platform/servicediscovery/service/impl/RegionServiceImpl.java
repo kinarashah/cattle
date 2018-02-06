@@ -353,6 +353,7 @@ public class RegionServiceImpl implements RegionService {
             data.put("linkedAccount", localAccount.getName());
             data.put("linkedRegion", externalRegion.getName());
             data.put("linkedAccountUuid", localAccount.getUuid());
+            System.out.println("jhfjeh");
             externalLink = RegionUtil.createExternalAccountLink(targetRegion, data, jsonMapper);
         } catch (Exception ex) {
             throw new RuntimeException(String.format("Failed to create external account link for accountLink [%d]", link.getId()), ex);
@@ -384,6 +385,7 @@ public class RegionServiceImpl implements RegionService {
             ExternalAccountLink externalLink = RegionUtil.getExternalAccountLink(targetRegion, targetResourceAccount,
                     localAccount, jsonMapper);
             if (externalLink == null) {
+            		System.out.println("  ");
                 return;
             }
             RegionUtil.deleteExternalAccountLink(targetRegion, externalLink);
