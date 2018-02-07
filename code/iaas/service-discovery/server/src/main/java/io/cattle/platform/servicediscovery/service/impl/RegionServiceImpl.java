@@ -122,7 +122,7 @@ public class RegionServiceImpl implements RegionService {
             String envName = splitted[1];
             Region region = regionsMap.get(regionName);
             ExternalProject externalProject = null;
-            if (region != null) {
+            if (region != null && !INVALID_STATES.contains(region.getState())) {
                 try {
                     String externalProjectKey = String.format("%s:%s", regionName, envName);
                     if(invalidAccounts.contains(externalProjectKey)) {
@@ -133,14 +133,14 @@ public class RegionServiceImpl implements RegionService {
                     if(externalProject == null) {
                         invalidAccounts.add(externalProjectKey);
                         continue;
-                    }
-                } catch(Exception ex) {
-                    log.warn("Failed to find account for %s - %s", envName, ex);
-                }
+                    } 
                 AccountLink link = objectManager.create(AccountLink.class, ACCOUNT_LINK.ACCOUNT_ID,
                         accountId, ACCOUNT_LINK.LINKED_ACCOUNT, envName, ACCOUNT_LINK.LINKED_REGION, regionName,
                         ACCOUNT_LINK.LINKED_REGION_ID, region.getId(), "linkedAccountUuid", externalProject.getUuid());
                 toUpdate.add(link);
+                } catch(Exception ex) {
+                    log.warn("Failed to find account for %s - %s", envName, ex);
+                }
             }
         }
         for (AccountLink item : toUpdate) {
@@ -227,33 +227,40 @@ public class RegionServiceImpl implements RegionService {
     private String getUUID(String regionName, String envName) {
         return String.format("%s:%s", regionName, envName);
     }
-
+    
     @Override
-    public boolean reconcileAgentExternalCredentials(Agent agent, Account account) {
-        Map<Long, Region> regionsIds = new HashMap<>();
-        Map<String, Region> regionNameToRegion = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        Region localRegion = null;
-
-        for (Region region : objectManager.find(Region.class, REGION.REMOVED, new Condition(ConditionType.NULL))) {
-            regionsIds.put(region.getId(), region);
-            regionNameToRegion.put(region.getName(), region);
-            if (region.getLocal()) {
-                localRegion = region;
-            }
-        }
-        boolean success = true;
-        // 1. Get linked environments
-        Map<Long, String> externalLinks = new HashMap<>();
-        Map<String, ExternalProject> projects = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    public boolean isRegionsEmpty(Agent agent, Account account, Map<String, Long> externalLinks,  Map<String, ExternalProject> projects, 
+    		Map<Long, Region> regionsIds, Map<String, Region> regionNameToRegion) {
+    		List<Region> regions = objectManager.find(Region.class, REGION.REMOVED, (Object) null);
+    		for(Region region : regions) {
+    			regionsIds.put(region.getId(), region);
+    			regionNameToRegion.put(region.getName(), region);
+    		}
+    		
         getLinkedEnvironments(account.getId(), externalLinks, regionsIds, projects);
 
         boolean noExternalLinks = externalLinks.isEmpty();
         List<? extends ExternalCredential> existing = DataAccessor.fieldObjectList(agent, AccountConstants.FIELD_EXTERNAL_CREDENTIALS, ExternalCredential.class,
                 jsonMapper);
         boolean noExternalCreds = existing.isEmpty();
-        if (noExternalLinks || noExternalCreds) {
+        if (noExternalLinks && noExternalCreds) {
             return true;
         }
+    		
+    		return false;
+    }
+
+    @Override
+    public boolean reconcileAgentExternalCredentials(Agent agent, Account account, Map<String, Long> externalLinks, Map<String, ExternalProject> projects, 
+    		Map<Long, Region> regionsIds, Map<String, Region> regionNameToRegion) {
+        Region localRegion = null;
+
+        for (Region region : regionsIds.values()) {
+            if (region.getLocal()) {
+                localRegion = region;
+            }
+        }
+        boolean success = true;
 
         // 2. Reconcile agent's credentials
         try {
@@ -265,8 +272,9 @@ public class RegionServiceImpl implements RegionService {
         return success;
     }
 
-    protected void reconcileExternalCredentials(Account account, Agent agent, Region localRegion, Map<Long, String> externalLinks,
+    protected void reconcileExternalCredentials(Account account, Agent agent, Region localRegion, Map<String, Long> externalLinks,
             Map<String, ExternalProject> externalProjects, Map<String, Region> regionNameToRegion) {
+    	
         // 1. Set credentials
         Map<String, ExternalCredential> toAdd = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         Map<String, ExternalCredential> toRemove = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -329,6 +337,10 @@ public class RegionServiceImpl implements RegionService {
         try {
             Region targetRegion = objectManager.loadResource(Region.class, link.getLinkedRegionId());
             Region localRegion = objectManager.findAny(Region.class, REGION.LOCAL, true, REGION.REMOVED, null);
+            if(localRegion == null) {
+            		log.warn("No local region present");
+            		return;
+            }
             ExternalRegion externalRegion = RegionUtil.getExternalRegion(targetRegion, localRegion.getName(), jsonMapper);
             if (externalRegion == null) {
                 throw new RuntimeException(String.format("Failed to find local region [%s] in external region [%s]",
@@ -352,6 +364,7 @@ public class RegionServiceImpl implements RegionService {
             data.put("external", "true");
             data.put("linkedAccount", localAccount.getName());
             data.put("linkedRegion", externalRegion.getName());
+            data.put("linkedRegionId", externalRegion.getId());
             data.put("linkedAccountUuid", localAccount.getUuid());
             externalLink = RegionUtil.createExternalAccountLink(targetRegion, data, jsonMapper);
         } catch (Exception ex) {
@@ -366,6 +379,7 @@ public class RegionServiceImpl implements RegionService {
         }
         try {
             Region targetRegion = objectManager.loadResource(Region.class, link.getLinkedRegionId());
+            System.out.println("sfnkguy");
             if(targetRegion == null) {
                 return;
             }
@@ -386,10 +400,12 @@ public class RegionServiceImpl implements RegionService {
             if (externalLink == null) {
                 return;
             }
-            System.out.println("dfnjehjfh");
+            System.out.println("dfnjehjfhdfmnejkr");
             RegionUtil.deleteExternalAccountLink(targetRegion, externalLink);
+            return;
         } catch (Exception ex) {
-            throw new RuntimeException(String.format("Failed to delete external account link for accountLink [%d]", link.getId()), ex);
+        		log.error(String.format("Failed to delete external account link for accountLink [%d]", link.getId()), ex);
+            return;
         }
     }
 
@@ -458,7 +474,7 @@ public class RegionServiceImpl implements RegionService {
     }
 
 
-    private void setCredentials(Agent agent, Map<Long, String> externalLinks,
+    private void setCredentials(Agent agent, Map<String, Long> externalLinks,
             Map<String, ExternalCredential> toAdd, Map<String, ExternalCredential> toRemove, Map<String, ExternalCredential> toRetain) {
         List<? extends ExternalCredential> existing = DataAccessor.fieldObjectList(agent, AccountConstants.FIELD_EXTERNAL_CREDENTIALS, ExternalCredential.class,
                 jsonMapper);
@@ -468,8 +484,7 @@ public class RegionServiceImpl implements RegionService {
             existingCredentials.put(getUUID(cred.getRegionName(), cred.getEnvironmentName()), cred);
         }
 
-        for (Long id : externalLinks.keySet()) {
-            String key = externalLinks.get(id);
+        for (String key : externalLinks.keySet()) {
             String[] splitted = key.split(":");
             String regionName = splitted[0];
             String envName = splitted[1];
@@ -478,9 +493,10 @@ public class RegionServiceImpl implements RegionService {
                 toRetain.put(uuid, existingCredentials.get(uuid));
             } else {
                 String[] keys = ApiKeyFilter.generateKeys();
-                toAdd.put(uuid, new ExternalCredential(envName, regionName, keys[0], keys[1], id));
+                toAdd.put(uuid, new ExternalCredential(envName, regionName, keys[0], keys[1], externalLinks.get(key)));
             }
         }
+        
 
         for (String key : existingCredentials.keySet()) {
             if (!(toAdd.containsKey(key) || toRetain.containsKey(key))) {
@@ -489,19 +505,22 @@ public class RegionServiceImpl implements RegionService {
         }
     }
 
-    private void getLinkedEnvironments(long accountId, Map<Long, String> links, Map<Long, Region> regionsIds,
+    private void getLinkedEnvironments(long accountId, Map<String, Long> links, Map<Long, Region> regionsIds,
             Map<String, ExternalProject> externalProjects) {
         List<AccountLink> accountLinks = objectManager.find(AccountLink.class, ACCOUNT_LINK.ACCOUNT_ID,
                 accountId, ACCOUNT_LINK.REMOVED, null, ACCOUNT_LINK.LINKED_REGION_ID, new Condition(ConditionType.NOTNULL));
 
         for (AccountLink link : accountLinks) {
+        		if (link.getState().equalsIgnoreCase(CommonStatesConstants.REMOVING)) {
+        			continue;
+        		}
             Region targetRegion = regionsIds.get(link.getLinkedRegionId());
             if (targetRegion == null) {
                 continue;
             }
             String UUID = getUUID(targetRegion.getName(), link.getLinkedAccount());
             if (!externalProjects.containsKey(UUID)) {
-                links.put(targetRegion.getId(), getUUID(targetRegion.getName(), link.getLinkedAccount()));
+                links.put(UUID, targetRegion.getId());
             }
         }
     }

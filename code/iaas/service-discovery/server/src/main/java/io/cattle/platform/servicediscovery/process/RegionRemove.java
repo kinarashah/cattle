@@ -2,6 +2,8 @@ package io.cattle.platform.servicediscovery.process;
 
 import static io.cattle.platform.core.model.tables.AccountLinkTable.*;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import io.cattle.platform.core.constants.CommonStatesConstants;
@@ -14,7 +16,6 @@ import io.cattle.platform.json.JsonMapper;
 import io.cattle.platform.lock.LockManager;
 import io.cattle.platform.object.process.StandardProcess;
 import io.cattle.platform.process.common.handler.AbstractObjectProcessHandler;
-import io.cattle.platform.servicediscovery.service.RegionService;
 import io.cattle.platform.util.type.CollectionUtils;
 
 import javax.inject.Inject;
@@ -26,12 +27,10 @@ public class RegionRemove extends AbstractObjectProcessHandler {
     LockManager lockManager;
     @Inject
     JsonMapper jsonMapper;
-    @Inject
-    RegionService regionService;
 
     @Override
     public String[] getProcessNames() {
-        return new String[] { "region.remove", "region.update"};
+        return new String[] { "region.remove", "region.update" };
     }
 
     @Override
@@ -40,6 +39,7 @@ public class RegionRemove extends AbstractObjectProcessHandler {
         Object oldObj = state.getData().get("old");
         if(oldObj == null || regionUpdated(oldObj, region)) {
         	cleanupExternalLinks(region);
+        	System.out.println("fhewuihfiu");
         }
         System.out.println("testing");
         return null;
@@ -47,25 +47,42 @@ public class RegionRemove extends AbstractObjectProcessHandler {
 
     private boolean regionUpdated(Object oldObj, Region region) {
 		Map<String, Object> old = CollectionUtils.toMap(oldObj);
-		String newURL = (String) old.get("url");
-		if(newURL!=null && !newURL.equals(region.getUrl())) {
-			return true;
+		if(old.containsKey("url")) {
+			String oldURL = (String) old.get("url");
+			if(isChanged(oldURL, region.getUrl())) {
+				return true;
+			}
+			System.out.println("");
 		}
-		String newPublicValue = (String) old.get("publicValue");
-		if(newPublicValue!=null && !newPublicValue.equals(region.getPublicValue())) {
-			return true;
+		if(old.containsKey("publicValue")) {
+			String oldPublicValue = (String) old.get("publicValue");
+			if(isChanged(oldPublicValue, region.getPublicValue())) {
+				return true;
+			}
 		}
-		String newSecretValue = (String) old.get("secretValue");
-		if(newSecretValue!=null && !newSecretValue.equals(region.getSecretValue())) {
-			return true;
+		if(old.containsKey("secretValue")) {
+			String oldSecretValue = (String) old.get("secretValue");
+			if(isChanged(oldSecretValue, region.getSecretValue())) {
+				return true;
+			}
 		}
 		return false; 
+    }
+    
+    private boolean isChanged(String oldString, String newString) {
+    		if(oldString == null && newString == null) {
+    			return false;
+    		}
+    		if(oldString == null || newString == null) {
+    			return true;
+    		}
+    		return !oldString.equals(newString);
     }
     
     private void cleanupExternalLinks(Region region) {
         for (AccountLink link : objectManager.find(AccountLink.class, ACCOUNT_LINK.REMOVED, null, ACCOUNT_LINK.LINKED_REGION_ID, region.getId())) {
             if (!link.getState().equalsIgnoreCase(CommonStatesConstants.REMOVING)) {
-                objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
+                objectProcessManager.scheduleStandardProcess(StandardProcess.REMOVE, link, null);
             }
         }
     }

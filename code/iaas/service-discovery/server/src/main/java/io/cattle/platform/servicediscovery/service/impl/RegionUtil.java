@@ -152,6 +152,10 @@ public class RegionUtil {
 
     public static ExternalAgent createExternalAgent(Region targetRegion, String targetEnvName, Map<String, Object> params,
             JsonMapper jsonMapper) throws IOException {
+	    	ExternalAgent externalAgent = RegionUtil.getExternalAgentByURI(targetRegion, params.get(AgentConstants.FIELD_URI).toString(), jsonMapper);
+	    	if(externalAgent != null) {
+	    		RegionUtil.deleteExternalAgent(null, targetRegion, externalAgent);
+	    	}
         String uri = String.format("%s/v2-beta/agents", getUrl(targetRegion));
         Request req = Request.Post(uri);
         setHeaders(req, targetRegion);
@@ -465,6 +469,31 @@ public class RegionUtil {
         String uri = String.format("%s/v2-beta/agents?uuid=%s",
                 getUrl(targetRegion),
                 uuid);
+        Request req = Request.Get(uri);
+        setHeaders(req, targetRegion);
+        return req.execute().handleResponse(new ResponseHandler<ExternalAgent>() {
+            @Override
+            public ExternalAgent handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+                if (response.getStatusLine().getStatusCode() != 200) {
+                    return null;
+                }
+                for (ExternalAgent agent : jsonMapper.readValue(response.getEntity().getContent(), ExternalAgentData.class).data) {
+                    List<String> invalidStates = Arrays.asList(CommonStatesConstants.REMOVED, CommonStatesConstants.REMOVING);
+                    if (invalidStates.contains(agent.getState())) {
+                        continue;
+                    }
+                    return agent;
+                }
+                return null;
+            }
+        });
+    }
+    
+    public static ExternalAgent getExternalAgentByURI(Region targetRegion, String urii, JsonMapper jsonMapper)
+            throws IOException {
+        String uri = String.format("%s/v2-beta/agents?uri=%s",
+                getUrl(targetRegion),
+                urii);
         Request req = Request.Get(uri);
         setHeaders(req, targetRegion);
         return req.execute().handleResponse(new ResponseHandler<ExternalAgent>() {
