@@ -23,9 +23,11 @@ import io.cattle.platform.servicediscovery.service.RegionService;
 import io.cattle.platform.servicediscovery.service.impl.RegionServiceImpl;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalAccountLink;
+import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalAccountLinkResponse;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalProject;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalProjectResponse;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalRegion;
+import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalRegionResponse;
 import io.cattle.platform.task.Task;
 
 import io.github.ibuildthecloud.gdapi.condition.Condition;
@@ -101,10 +103,10 @@ public class RegionMonitor extends AbstractJooqDao implements Task{
 
     private void cleanLinks(Map<Long, Region> regionMap, HashSet<String> existingLinks,
             Region localRegion) {
-        Map<String, ExternalRegion> externalRegionMap = new HashMap<String, ExternalRegion>();
+        Map<String, ExternalRegionResponse> externalRegionMap = new HashMap<String, ExternalRegionResponse>();
         Map<String, ExternalProjectResponse> externalProjectMap = new HashMap<String, ExternalProjectResponse>();
 
-
+        log.info("entered cleanLinks");
         List<AccountLink> accountLinks = objectManager.find(AccountLink.class, ACCOUNT_LINK.REMOVED, null, ACCOUNT_LINK.LINKED_REGION_ID,
                 new Condition(ConditionType.NOTNULL));
         for(AccountLink link : accountLinks) {
@@ -119,15 +121,17 @@ public class RegionMonitor extends AbstractJooqDao implements Task{
             }
             try {
                 // localRegion in targetRegion not present
-                ExternalRegion externalRegion = null;
+                ExternalRegionResponse externalRegionResponse = null;
                 String externalRegionKey = String.format("%s:%s", targetRegion.getName(), localRegion.getName());
                 if(externalRegionMap.containsKey(externalRegionKey)) {
-                    externalRegion = externalRegionMap.get(externalRegionKey);
+                    externalRegionResponse = externalRegionMap.get(externalRegionKey);
                 } else {
-                    externalRegion = RegionUtil.getExternalRegion(targetRegion, localRegion.getName(), jsonMapper);
-                    externalRegionMap.put(externalRegionKey, externalRegion); 
+                    externalRegionResponse = RegionUtil.getExternalRegion(targetRegion, localRegion.getName(), jsonMapper);
+                    externalRegionMap.put(externalRegionKey, externalRegionResponse); 
                 }
-                if(externalRegion == null) {
+                ExternalRegion externalRegion = externalRegionResponse.getExternalRegion();
+                boolean notFound = (externalRegion == null && externalRegionResponse.getStatusCode()==200);
+                if(notFound) {
                         objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
                     continue;
                 }
@@ -140,10 +144,9 @@ public class RegionMonitor extends AbstractJooqDao implements Task{
                     externalProjectResponse = RegionUtil.getTargetProjectByName(targetRegion, link.getLinkedAccount(), jsonMapper);
                     externalProjectMap.put(externalProjectKey, externalProjectResponse);
                 }
-
                 String storedUUID = DataAccessor.fieldString(link, "linkedAccountUuid");
                 ExternalProject externalProject = externalProjectResponse.getExternalProject();
-                boolean notFound = (externalProject == null && externalProjectResponse.getStatusCode()==200);
+                notFound = (externalProject == null && externalProjectResponse.getStatusCode()==200);
                 if(notFound) {
                         objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
                         continue;
@@ -155,13 +158,17 @@ public class RegionMonitor extends AbstractJooqDao implements Task{
                             continue;
                     }
                 }
-                if(link.getExternal()) {
-                        Account localAccount = objectManager.loadResource(Account.class, link.getAccountId());
-                        ExternalAccountLink accLink = RegionUtil.getAccountLinkForExternal(targetRegion, externalProject, localAccount, jsonMapper);
-                        if(accLink == null || removedStates.contains(accLink.getState())){
-                            objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
-                            continue;
-                        }
+                if(externalProject == null) {
+                        continue;
+                }
+                Account localAccount = objectManager.loadResource(Account.class, link.getAccountId());
+                ExternalAccountLinkResponse accLinkResponse = RegionUtil.getAccountLinkForExternal(targetRegion, externalProject, localAccount, 
+                    jsonMapper, !link.getExternal());
+                ExternalAccountLink accLink = accLinkResponse.getExternalAccountLink();
+                notFound = (accLink == null && accLinkResponse.getStatusCode() == 200);
+                if(notFound || removedStates.contains(accLink.getState())){
+                    objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
+                    continue;
                 }
                 existingLinks.add(externalProjectKey);
             } catch (Exception ex) {

@@ -18,9 +18,13 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RegionUtil {
     public static final String EXTERNAL_AGENT_URI_PREFIX = "event:///external=";
+    
+    private static final Logger log = LoggerFactory.getLogger(RegionUtil.class);
     
     public static ExternalAccountLink createExternalAccountLink(Region targetRegion, Map<String, Object> params, JsonMapper jsonMapper) throws IOException {
         String uri = String.format("%s/v2-beta/accountLinks", getUrl(targetRegion));
@@ -81,35 +85,35 @@ public class RegionUtil {
         });
     }
     
-    public static ExternalAccountLink getAccountLinkForExternal(Region targetRegion, ExternalProject targetResourceAccount, Account localAccount,
-            JsonMapper jsonMapper) throws IOException {
-        String uri = String.format("%s/v2-beta/accountLinks?accountId=%s&linkedAccount=%s&external=false",
-                getUrl(targetRegion),
-                targetResourceAccount.getId(),
-                localAccount.getName());
+    public static ExternalAccountLinkResponse getAccountLinkForExternal(Region targetRegion, ExternalProject targetResourceAccount, Account localAccount,
+            JsonMapper jsonMapper, boolean external) throws IOException {
+            String uri = String.format("%s/v2-beta/accountLinks?accountId=%s&linkedAccount=%s&external=%s",
+                        getUrl(targetRegion),
+                        targetResourceAccount.getId(),
+                        localAccount.getName(), String.valueOf(external));
         Request req = Request.Get(uri);
         setHeaders(req, targetRegion);
-        return req.execute().handleResponse(new ResponseHandler<ExternalAccountLink>() {
+        return req.execute().handleResponse(new ResponseHandler<ExternalAccountLinkResponse>() {
             @Override
-            public ExternalAccountLink handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+            public ExternalAccountLinkResponse handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+                    ExternalAccountLinkResponse externalAccLinkResponse = new ExternalAccountLinkResponse();
+                    externalAccLinkResponse.statusCode = response.getStatusLine().getStatusCode();
+                    externalAccLinkResponse.externalAccountLink = null;
                 if (response.getStatusLine().getStatusCode() != 200) {
-                    return null;
+                    return externalAccLinkResponse;
                 }
-                for (ExternalAccountLink link : jsonMapper.readValue(response.getEntity().getContent(), ExternalAccountLinkData.class).data) {
-                    List<String> invalidStates = Arrays.asList(CommonStatesConstants.REMOVED, CommonStatesConstants.REMOVING);
-                    if (invalidStates.contains(link.getState())) {
-                        continue;
-                    }
 
+                for (ExternalAccountLink link : jsonMapper.readValue(response.getEntity().getContent(), ExternalAccountLinkData.class).data) {
                     if (link.getLinkedAccountUuid().equalsIgnoreCase(localAccount.getUuid())) {
-                        return link;
+                            externalAccLinkResponse.externalAccountLink = link;
+                        return externalAccLinkResponse;
                     }
                 }
-                return null;
+                return externalAccLinkResponse;
             }
         });
     }
-
+    
     public static boolean deleteExternalAccountLink(Region targetRegion, ExternalAccountLink externalLink) throws IOException {
         String uri = String.format("%s/v2-beta/accountLinks/%s", getUrl(targetRegion), externalLink.getId());
         Request req = Request.Delete(uri);
@@ -138,6 +142,7 @@ public class RegionUtil {
         String uri = String.format("%s/v2-beta/projects?name=%s&all=true",
                 getUrl(targetRegion),
                 accountName);
+        log.info("true uri", uri);
         Request req = Request.Get(uri);
         setHeaders(req, targetRegion);
         return req.execute().handleResponse(new ResponseHandler<ExternalProjectResponse>() {
@@ -183,6 +188,7 @@ public class RegionUtil {
             JsonMapper jsonMapper) throws IOException {
             ExternalAgent externalAgent = RegionUtil.getExternalAgentByURI(targetRegion, params.get(AgentConstants.FIELD_URI).toString(), jsonMapper);
             if(externalAgent != null) {
+                log.info("got externalAgent %s", externalAgent.getName());
                 RegionUtil.deleteExternalAgent(null, targetRegion, externalAgent);
             }
         String uri = String.format("%s/v2-beta/agents", getUrl(targetRegion));
@@ -217,29 +223,33 @@ public class RegionUtil {
                     throw new IOException(String.format("Failed to delete external agent externalId=%s, response error code %s", agent.getUuid(),
                             response.getStatusLine().getReasonPhrase()));
                 }
-
+                log.info("returning null external agent");
                 return null;
             }
         });
     }
 
-    public static ExternalRegion getExternalRegion(Region targetRegion, String regionName, JsonMapper jsonMapper)
+    public static ExternalRegionResponse getExternalRegion(Region targetRegion, String regionName, JsonMapper jsonMapper)
             throws IOException {
         String uri = String.format("%s/v2-beta/regions?name=%s",
                 getUrl(targetRegion),
                 regionName);
         Request req = Request.Get(uri);
         setHeaders(req, targetRegion);
-        return req.execute().handleResponse(new ResponseHandler<ExternalRegion>() {
+        return req.execute().handleResponse(new ResponseHandler<ExternalRegionResponse>() {
             @Override
-            public ExternalRegion handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+            public ExternalRegionResponse handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+                ExternalRegionResponse externalRegionResponse = new ExternalRegionResponse();
+                externalRegionResponse.statusCode = response.getStatusLine().getStatusCode();
+                externalRegionResponse.externalRegion = null;
                 if (response.getStatusLine().getStatusCode() != 200) {
-                    return null;
+                    return externalRegionResponse;
                 }
                 for (ExternalRegion region : jsonMapper.readValue(response.getEntity().getContent(), ExternalRegionData.class).data) {
-                    return region;
+                    externalRegionResponse.externalRegion = region;
+                    return externalRegionResponse;
                 }
-                return null;
+                return externalRegionResponse;
             }
         });
     }
@@ -467,6 +477,32 @@ public class RegionUtil {
             return this.externalProject;
         }
 
+        public int getStatusCode() {
+            return this.statusCode;
+        }
+    }
+    
+    public static class ExternalRegionResponse {
+            ExternalRegion externalRegion;
+            int statusCode;
+            
+            public ExternalRegion getExternalRegion() {
+                return this.externalRegion;
+            }
+            
+            public int getStatusCode() {
+                return this.statusCode;
+            }
+    }
+    
+    public static class ExternalAccountLinkResponse {
+        ExternalAccountLink externalAccountLink;
+        int statusCode;
+        
+        public ExternalAccountLink getExternalAccountLink() {
+            return this.externalAccountLink;
+        }
+        
         public int getStatusCode() {
             return this.statusCode;
         }
