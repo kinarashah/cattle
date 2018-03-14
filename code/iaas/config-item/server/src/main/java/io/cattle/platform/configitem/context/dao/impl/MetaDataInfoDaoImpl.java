@@ -516,7 +516,7 @@ public class MetaDataInfoDaoImpl extends AbstractJooqDao implements MetaDataInfo
     @Override
     public void fetchEnvironment(final MetaHelperInfo helperInfo, final OutputStream os) {
         Account env = helperInfo.getAccount();
-        EnvironmentMetaData data = new EnvironmentMetaData(env.getName().toLowerCase(), env.getUuid(), helperInfo.getRegionName().toLowerCase());
+        EnvironmentMetaData data = new EnvironmentMetaData(StringUtils.lowerCase(env.getName()), env.getUuid(), StringUtils.lowerCase(helperInfo.getRegionName()));
         writeToJson(os, data);
     }
 
@@ -650,15 +650,15 @@ public class MetaDataInfoDaoImpl extends AbstractJooqDao implements MetaDataInfo
 
     @Override
     public void fetchCredentials(MetaHelperInfo helperInfo, Agent agent, OutputStream os) {
-    		Map<Long, Region> regionsIds = new HashMap<>();
-    		Map<String, Region> regionNameToRegion = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+            Map<Long, Region> regionsIds = new HashMap<>();
+            Map<String, Region> regionNameToRegion = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         Map<String, Long> externalLinks = new HashMap<>();
         Map<String, ExternalProject> projects = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    		
+            
         if(regionService.isRegionsEmpty(agent, helperInfo.getAccount(), externalLinks, projects, regionsIds, regionNameToRegion)) {
-    			return;
-    		}
-    		
+                return;
+            }
+            
         regionService.reconcileAgentExternalCredentials(agent, helperInfo.getAccount(), externalLinks, projects, regionsIds, regionNameToRegion);
         List<ExternalCredential> creds = DataAccessor.fieldObjectList(objectMgr.reload(agent), AccountConstants.FIELD_EXTERNAL_CREDENTIALS,
                 ExternalCredential.class, jsonMapper);
