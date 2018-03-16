@@ -48,12 +48,12 @@
         "haConfig.dbSize" : "r",
         "haConfig.dbHost" : "r",
 
-        "accountLink" : "r",
+        "accountLink" : "ru",
         "accountLink.linkedRegion" : "r",
         "accountLink.linkedAccount" : "r",
         "accountLink.external": "r",
         "accountLink.linkedAccountUuid" : "r",
-        "accountLink.description" : "cru",
+        "accountLink.description" : "ru",
 
         "activeSetting" : "rud",
         "activeSetting.activeValue" : "r",

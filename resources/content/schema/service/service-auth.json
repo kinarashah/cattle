@@ -23,14 +23,14 @@
         "project.name": "cr",
         "project.description": "cr",
         "hostTemplate.secretValues": "cr",
-        "accountLink" : "crd",
+        "accountLink" : "crud",
         "accountLink.linkedAccount" : "cr",
         "accountLink.linkedRegionId" : "cr",
         "accountLink.linkedRegion" : "cru",
         "accountLink.accountId" : "cr",
         "accountLink.external" : "cr",
         "accountLink.linkedAccountUuid" : "cr",
-        "accountLink.description" : "cru",
+        "accountLink.description" : "ru",
         "end" : ""
     }
 }
