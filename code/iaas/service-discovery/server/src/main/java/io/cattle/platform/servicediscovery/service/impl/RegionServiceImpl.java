@@ -33,6 +33,7 @@ import io.cattle.platform.object.util.DataAccessor;
 import io.cattle.platform.process.common.lock.AccountLinksUpdateLock;
 import io.cattle.platform.servicediscovery.service.RegionService;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalAccountLink;
+import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalAccountLinkResponse;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalAgent;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalProject;
 import io.cattle.platform.servicediscovery.service.impl.RegionUtil.ExternalProjectResponse;
@@ -43,6 +44,7 @@ import io.github.ibuildthecloud.gdapi.condition.ConditionType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -335,19 +337,6 @@ public class RegionServiceImpl implements RegionService {
             return;
         }
         try {
-//            String UUID = getUUID(targetRegion.getName(), cred.getEnvironmentName());
-//            ExternalProject targetResourceAccount = null;
-//            if (externalProjects.containsKey(UUID)) {
-//                targetResourceAccount = externalProjects.get(UUID);
-//            } else {
-//                    ExternalProjectResponse externalProjectResponse = RegionUtil.getTargetProjectByName(targetRegion, cred.getEnvironmentName(), jsonMapper);
-//                targetResourceAccount = externalProjectResponse.externalProject;
-//                if (targetResourceAccount == null) {
-//                    throw new RuntimeException(String.format("Failed to find target environment by name [%s] in region [%s]",
-//                            cred.getEnvironmentName(), targetRegion.getName()));
-//                }
-//                externalProjects.put(UUID, targetResourceAccount);
-//            }
                 log.info("creating external link");
             Region targetRegion = objectManager.loadResource(Region.class, link.getLinkedRegionId());
             Region localRegion = objectManager.findAny(Region.class, REGION.LOCAL, true, REGION.REMOVED, null);
@@ -369,9 +358,9 @@ public class RegionServiceImpl implements RegionService {
                         link.getLinkedAccount(), localRegion.getName()));
             }
             Account localAccount = objectManager.loadResource(Account.class, link.getAccountId());
-            ExternalAccountLink externalLink = RegionUtil.getExternalAccountLink(targetRegion,
+            ExternalAccountLinkResponse externalLinkResponse = RegionUtil.getExternalAccountLink(targetRegion,
                     targetResourceAccount, localAccount, jsonMapper);
-            if (externalLink != null) {
+            if (externalLinkResponse.externalAccountLink != null) {
                 return;
             }
 
@@ -382,7 +371,7 @@ public class RegionServiceImpl implements RegionService {
             data.put("linkedRegion", externalRegion.getName());
             data.put("linkedRegionId", externalRegion.getId());
             data.put("linkedAccountUuid", localAccount.getUuid());
-            externalLink = RegionUtil.createExternalAccountLink(targetRegion, data, jsonMapper);
+            RegionUtil.createExternalAccountLink(targetRegion, data, jsonMapper);
         } catch (Exception ex) {
             throw new RuntimeException(String.format("Failed to create external account link for accountLink [%d]", link.getId()), ex);
         }
@@ -410,8 +399,9 @@ public class RegionServiceImpl implements RegionService {
                 }
             }
             Account localAccount = objectManager.loadResource(Account.class, link.getAccountId());
-            ExternalAccountLink externalLink = RegionUtil.getExternalAccountLink(targetRegion, targetResourceAccount,
+            ExternalAccountLinkResponse externalLinkResponse = RegionUtil.getExternalAccountLink(targetRegion, targetResourceAccount,
                     localAccount, jsonMapper);
+            ExternalAccountLink externalLink = externalLinkResponse.externalAccountLink;
             if (externalLink == null) {
                 return true;
             }
@@ -557,4 +547,50 @@ public class RegionServiceImpl implements RegionService {
         }
         return true;
     }
+    
+    public void updateIfExists(AccountLink link) {
+         try {
+             log.info("creating external link");
+             Region targetRegion = objectManager.loadResource(Region.class, link.getLinkedRegionId());
+             Region localRegion = objectManager.findAny(Region.class, REGION.LOCAL, true, REGION.REMOVED, null);
+             if(localRegion == null) {
+                 log.warn("No local region present");
+                 return;
+             }
+             ExternalRegionResponse externalRegionResponse = RegionUtil.getExternalRegion(targetRegion, localRegion.getName(), jsonMapper);
+             ExternalRegion externalRegion = externalRegionResponse.getExternalRegion();
+             if (externalRegion == null) {
+                 throw new RuntimeException(String.format("Failed to find local region [%s] in external region [%s]",
+                         localRegion.getName(), targetRegion.getName()));
+             }
+             // log.info(String.format("got externalRegion how? %s %s ",externalRegion.getName(), externalRegionResponse.getStatusCode()));
+             ExternalProjectResponse externalProjectResponse = RegionUtil.getTargetProjectByName(targetRegion, link.getLinkedAccount(), jsonMapper);
+             ExternalProject targetResourceAccount = externalProjectResponse.externalProject;
+             if (targetResourceAccount == null) {
+                 throw new RuntimeException(String.format("Failed to find target environment by name [%s] in region [%s]",
+                         link.getLinkedAccount(), localRegion.getName()));
+             }
+             Account localAccount = objectManager.loadResource(Account.class, link.getAccountId());
+             ExternalAccountLinkResponse externalLinkResponse = RegionUtil.getExternalAccountLink(targetRegion,
+                     targetResourceAccount, localAccount, jsonMapper);
+             if (externalLinkResponse.externalAccountLink != null && externalLinkResponse.statusCode == 200) {
+                 ExternalAccountLink externalAccLink = externalLinkResponse.externalAccountLink;
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("accountId", externalAccLink.getId());
+                    data.put("external", "true");
+                    data.put("linkedAccount", externalAccLink.getLinkedAccount());
+                    data.put("linkedRegion", externalAccLink.getLinkedRegion());
+                    data.put("linkedRegionId", externalAccLink.getLinkedRegionId());
+                    data.put("linkedAccountUuid", externalAccLink.getLinkedAccountUuid());
+                    data.put("description", new Date().toString());
+                    log.info("updateIfExists calling update external link");
+                 RegionUtil.updateExternalAccountLink(targetRegion, data, jsonMapper);
+             }
+            return;
+         } catch(Exception ex) {
+             log.warn(String.format("Failed to get external account link for %s - %s ", link.getId(), ex));
+             return;
+         }
+   }    
+
 }

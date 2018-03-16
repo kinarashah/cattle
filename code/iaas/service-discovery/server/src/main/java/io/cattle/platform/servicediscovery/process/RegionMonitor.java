@@ -162,13 +162,19 @@ public class RegionMonitor extends AbstractJooqDao implements Task{
                         continue;
                 }
                 Account localAccount = objectManager.loadResource(Account.class, link.getAccountId());
-                ExternalAccountLinkResponse accLinkResponse = RegionUtil.getAccountLinkForExternal(targetRegion, externalProject, localAccount, 
-                    jsonMapper, !link.getExternal());
+                boolean external = link.getExternal();
+                ExternalAccountLinkResponse accLinkResponse = RegionUtil.getAccountLink(targetRegion, externalProject, localAccount, 
+                    jsonMapper, !external);
                 ExternalAccountLink accLink = accLinkResponse.getExternalAccountLink();
                 notFound = (accLink == null && accLinkResponse.getStatusCode() == 200);
                 if(notFound || removedStates.contains(accLink.getState())){
-                    objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
-                    continue;
+                        if(external) {
+                            log.info("monitor deleting actual link since external link absent");
+                        objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
+                        continue;
+                        }
+                        log.info("monitor creating external link");
+                        regionService.createExternalAccountLink(link);
                 }
                 existingLinks.add(externalProjectKey);
             } catch (Exception ex) {

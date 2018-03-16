@@ -43,6 +43,24 @@ public class RegionUtil {
             }
         });
     }
+    
+    public static ExternalAccountLink updateExternalAccountLink(Region targetRegion, Map<String, Object> params, JsonMapper jsonMapper) throws IOException {
+        String uri = String.format("%s/v2-beta/accountLinks", getUrl(targetRegion));
+        Request req = Request.Put(uri);
+        setHeaders(req, targetRegion);
+        req.bodyString(jsonMapper.writeValueAsString(params), ContentType.APPLICATION_JSON);
+        return req.execute().handleResponse(new ResponseHandler<ExternalAccountLink>() {
+            @Override
+            public ExternalAccountLink handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+                if (response.getStatusLine().getStatusCode() >= 300) {
+                    throw new IOException(
+                            String.format("Failed to update external account link: response error code %s",
+                                    response.getStatusLine().getReasonPhrase()));
+                }
+                return jsonMapper.readValue(response.getEntity().getContent(), ExternalAccountLink.class);
+            }
+        });
+    }
 
     private static Request setHeaders(Request req, Region region) {
         String publicKey = region.getPublicValue();
@@ -56,7 +74,7 @@ public class RegionUtil {
         return req;
     }
 
-    public static ExternalAccountLink getExternalAccountLink(Region targetRegion, ExternalProject targetResourceAccount, Account localAccount,
+    public static ExternalAccountLinkResponse getExternalAccountLink(Region targetRegion, ExternalProject targetResourceAccount, Account localAccount,
             JsonMapper jsonMapper) throws IOException {
         String uri = String.format("%s/v2-beta/accountLinks?accountId=%s&linkedAccount=%s&external=true",
                 getUrl(targetRegion),
@@ -64,11 +82,14 @@ public class RegionUtil {
                 localAccount.getName());
         Request req = Request.Get(uri);
         setHeaders(req, targetRegion);
-        return req.execute().handleResponse(new ResponseHandler<ExternalAccountLink>() {
+        return req.execute().handleResponse(new ResponseHandler<ExternalAccountLinkResponse>() {
             @Override
-            public ExternalAccountLink handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+            public ExternalAccountLinkResponse handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
+                ExternalAccountLinkResponse externalAccLinkResponse = new ExternalAccountLinkResponse();
+                externalAccLinkResponse.statusCode = response.getStatusLine().getStatusCode();
+                externalAccLinkResponse.externalAccountLink = null;
                 if (response.getStatusLine().getStatusCode() != 200) {
-                    return null;
+                    return externalAccLinkResponse;
                 }
                 for (ExternalAccountLink link : jsonMapper.readValue(response.getEntity().getContent(), ExternalAccountLinkData.class).data) {
                     List<String> invalidStates = Arrays.asList(CommonStatesConstants.REMOVED, CommonStatesConstants.REMOVING);
@@ -77,15 +98,16 @@ public class RegionUtil {
                     }
 
                     if (link.getLinkedAccountUuid().equalsIgnoreCase(localAccount.getUuid())) {
-                        return link;
+                            externalAccLinkResponse.externalAccountLink = link;
+                        return externalAccLinkResponse;
                     }
                 }
-                return null;
+                return externalAccLinkResponse;
             }
         });
     }
     
-    public static ExternalAccountLinkResponse getAccountLinkForExternal(Region targetRegion, ExternalProject targetResourceAccount, Account localAccount,
+    public static ExternalAccountLinkResponse getAccountLink(Region targetRegion, ExternalProject targetResourceAccount, Account localAccount,
             JsonMapper jsonMapper, boolean external) throws IOException {
             String uri = String.format("%s/v2-beta/accountLinks?accountId=%s&linkedAccount=%s&external=%s",
                         getUrl(targetRegion),
@@ -133,7 +155,7 @@ public class RegionUtil {
         return true;
 
     }
-
+    
     public static String getTargetAgentUri(String localRegionName, String localEnvironmentName, String agentUuid, String targetResourceAccountUuid) {
         return String.format("%s%s_%s_%s_%s", EXTERNAL_AGENT_URI_PREFIX, localRegionName, localEnvironmentName, agentUuid, targetResourceAccountUuid);
     }

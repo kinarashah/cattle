@@ -22,5 +22,6 @@ public interface RegionService {
     void createExternalAccountLink(AccountLink link);
 
     boolean deleteExternalAccountLink(AccountLink link);
-
+    
+    void updateIfExists(AccountLink link);
 }
