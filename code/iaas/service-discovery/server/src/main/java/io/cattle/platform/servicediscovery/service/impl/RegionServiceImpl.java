@@ -361,7 +361,7 @@ public class RegionServiceImpl implements RegionService {
                 throw new RuntimeException(String.format("Failed to find local region [%s] in external region [%s]",
                         localRegion.getName(), targetRegion.getName()));
             }
-            log.info(String.format("got externalRegion how? %s %s",externalRegion.getName(), externalRegionResponse.getStatusCode()));
+            // log.info(String.format("got externalRegion how? %s %s ",externalRegion.getName(), externalRegionResponse.getStatusCode()));
             ExternalProjectResponse externalProjectResponse = RegionUtil.getTargetProjectByName(targetRegion, link.getLinkedAccount(), jsonMapper);
             ExternalProject targetResourceAccount = externalProjectResponse.externalProject;
             if (targetResourceAccount == null) {
