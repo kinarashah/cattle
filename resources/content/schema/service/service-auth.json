@@ -26,10 +26,11 @@
         "accountLink" : "crd",
         "accountLink.linkedAccount" : "cr",
         "accountLink.linkedRegionId" : "cr",
-        "accountLink.linkedRegion" : "cr",
+        "accountLink.linkedRegion" : "cru",
         "accountLink.accountId" : "cr",
         "accountLink.external" : "cr",
         "accountLink.linkedAccountUuid" : "cr",
+        "accountLink.description" : "cru",
         "end" : ""
     }
 }
