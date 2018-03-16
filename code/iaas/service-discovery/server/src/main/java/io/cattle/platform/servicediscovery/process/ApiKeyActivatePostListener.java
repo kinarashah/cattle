@@ -38,10 +38,10 @@ public class ApiKeyActivatePostListener extends AbstractObjectProcessLogic imple
     @Override
     public HandlerResult handle(ProcessState state, ProcessInstance process) {
         Credential credential = (Credential) state.getResource();
-        Object oldObj = state.getData().get("old");
-        if(oldObj == null) {
-                return null;
-        }
+//        Object oldObj = state.getData().get("old");
+//        if(oldObj == null) {
+//                return null;
+//        }
             
         final Logger log = LoggerFactory.getLogger(ApiKeyActivatePostListener.class);
         
