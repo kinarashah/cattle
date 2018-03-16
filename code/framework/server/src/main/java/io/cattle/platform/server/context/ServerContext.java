@@ -109,7 +109,7 @@ public class ServerContext {
         if (StringUtils.isEmpty(embedded)) {
             embedded = System.getProperty("host.api.proxy.mode", "off");
         }
-        return "embedded";
+        return embedded;
     }
 
     protected static String getServerIp() {

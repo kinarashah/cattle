@@ -93,7 +93,7 @@ public class WebsocketProxyLauncher extends GenericServiceLauncher {
 
     @Override
     protected String binaryPath() {
-        return "/usr/local/bin/websocket-proxy";
+        return "websocket-proxy";
     }
 
     @Override
