@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import javax.inject.Inject;
 
@@ -576,13 +577,13 @@ public class RegionServiceImpl implements RegionService {
              if (externalLinkResponse.externalAccountLink != null && externalLinkResponse.statusCode == 200) {
                  ExternalAccountLink externalAccLink = externalLinkResponse.externalAccountLink;
                     Map<String, Object> data = new HashMap<>();
-                    data.put("accountId", externalAccLink.getId());
-                    data.put("external", "true");
-                    data.put("linkedAccount", externalAccLink.getLinkedAccount());
-                    data.put("linkedRegion", externalAccLink.getLinkedRegion());
-                    data.put("linkedRegionId", externalAccLink.getLinkedRegionId());
-                    data.put("linkedAccountUuid", externalAccLink.getLinkedAccountUuid());
-                    data.put("description", new Date().toString());
+//                    data.put("accountId", externalAccLink.getId());
+//                    data.put("external", "true");
+//                    data.put("linkedAccount", externalAccLink.getLinkedAccount());
+//                    data.put("linkedRegion", externalAccLink.getLinkedRegion());
+//                    data.put("linkedRegionId", externalAccLink.getLinkedRegionId());
+//                    data.put("linkedAccountUuid", externalAccLink.getLinkedAccountUuid());
+                    data.put("description", UUID.randomUUID().toString());
                     log.info("updateIfExists calling update external link");
                  RegionUtil.updateExternalAccountLink(targetRegion, data, jsonMapper);
              }
