@@ -53,7 +53,7 @@
         "accountLink.linkedAccount" : "r",
         "accountLink.external": "r",
         "accountLink.linkedAccountUuid" : "r",
-        "accountLink.description" : "ru",
+        "accountLink.description" : "cru",
 
         "activeSetting" : "rud",
         "activeSetting.activeValue" : "r",

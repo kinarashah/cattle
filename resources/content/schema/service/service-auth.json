@@ -30,7 +30,7 @@
         "accountLink.accountId" : "cr",
         "accountLink.external" : "cr",
         "accountLink.linkedAccountUuid" : "cr",
-        "accountLink.description" : "ru",
+        "accountLink.description" : "cru",
         "end" : ""
     }
 }
