@@ -170,6 +170,7 @@ public class RegionMonitor extends AbstractJooqDao implements Task{
                 if(notFound || removedStates.contains(accLink.getState())){
                         if(external) {
                             log.info("monitor deleting actual link since external link absent");
+                            log.info(String.format("actual link %s %s %s %s", notFound, accLink.getId(), accLinkResponse.getStatusCode(), accLink.getState()));
                         objectProcessManager.executeStandardProcess(StandardProcess.REMOVE, link, null);
                         continue;
                         }

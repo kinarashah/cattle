@@ -65,6 +65,7 @@ public class AccountConstants {
 
     public static final String PROCESS_ACCOUNT_LINK_CREATE = "accountlink.create";
     public static final String PROCESS_ACCOUNT_LINK_REMOVE = "accountlink.remove";
+    public static final String PROCESS_ACCOUNT_LINK_UPDATE = "accountlink.update";
 
     public static ServicesPortRange getDefaultServicesPortRange() {
         PortRangeSpec spec = new PortRangeSpec(ENV_PORT_RANGE.get());
