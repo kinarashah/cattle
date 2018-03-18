@@ -320,6 +320,11 @@ public class RegionServiceImpl implements RegionService {
             labels.put(SystemLabels.LABEL_AGENT_SERVICE_METADATA, "true");
             data.put(InstanceConstants.FIELD_LABELS, labels);
             data.put("activateOnCreate", true);
+            log.info(String.format(" %s", cred.getPublicValue()));
+            log.info(String.format(" %s", cred.getSecretValue()));
+            log.info(String.format(" %s", targetAgentUri));
+            log.info(String.format(" %s", targetResourceAccount.getId()));
+            log.info(String.format(" %s", agent.getUuid()));
             return RegionUtil.createExternalAgent(targetRegion, cred.getEnvironmentName(), data, jsonMapper);
         } catch (Exception e) {
             log.error("Failed to create external agent", e);
