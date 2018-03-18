@@ -44,8 +44,10 @@ public class RegionUtil {
         });
     }
     
-    public static ExternalAccountLink updateExternalAccountLink(Region targetRegion, Map<String, Object> params, JsonMapper jsonMapper) throws IOException {
-        String uri = String.format("%s/v2-beta/accountLinks", getUrl(targetRegion));
+    public static ExternalAccountLink updateExternalAccountLink(Region targetRegion, Map<String, Object> params, String id, 
+        JsonMapper jsonMapper) throws IOException {
+        String uri = String.format("%s/v2-beta/accountLinks/%s", getUrl(targetRegion), id);
+        log.info(String.format("uri %s", uri));
         Request req = Request.Put(uri);
         setHeaders(req, targetRegion);
         req.bodyString(jsonMapper.writeValueAsString(params), ContentType.APPLICATION_JSON);

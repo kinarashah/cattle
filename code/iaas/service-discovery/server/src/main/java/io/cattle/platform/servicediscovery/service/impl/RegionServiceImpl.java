@@ -576,7 +576,7 @@ public class RegionServiceImpl implements RegionService {
              if (externalLinkResponse.externalAccountLink != null && externalLinkResponse.statusCode == 200) {
                  ExternalAccountLink externalAccLink = externalLinkResponse.externalAccountLink;
                     Map<String, Object> data = new HashMap<>();
-                    data.put("accountId", externalAccLink.getId());
+                    data.put("accountId", externalAccLink.getAccountId());
                     data.put("external", "true");
                     data.put("linkedAccount", externalAccLink.getLinkedAccount());
                     data.put("linkedRegion", externalAccLink.getLinkedRegion());
@@ -584,7 +584,7 @@ public class RegionServiceImpl implements RegionService {
                     data.put("linkedAccountUuid", externalAccLink.getLinkedAccountUuid());
                     data.put("description", UUID.randomUUID().toString());
                     log.info("updateIfExists calling update external link");
-                 RegionUtil.updateExternalAccountLink(targetRegion, data, jsonMapper);
+                 RegionUtil.updateExternalAccountLink(targetRegion, data, externalAccLink.getId(), jsonMapper);
              }
             return;
          } catch(Exception ex) {
