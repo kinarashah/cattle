@@ -46,7 +46,7 @@ public class RegionUtil {
     
     public static ExternalAccountLink updateExternalAccountLink(Region targetRegion, Map<String, Object> params, JsonMapper jsonMapper) throws IOException {
         String uri = String.format("%s/v2-beta/accountLinks", getUrl(targetRegion));
-        Request req = Request.Post(uri);
+        Request req = Request.Put(uri);
         setHeaders(req, targetRegion);
         req.bodyString(jsonMapper.writeValueAsString(params), ContentType.APPLICATION_JSON);
         return req.execute().handleResponse(new ResponseHandler<ExternalAccountLink>() {
