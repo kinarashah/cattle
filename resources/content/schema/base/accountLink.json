@@ -1,11 +1,14 @@
 {
-	"resourceFields": {
-		"linkedAccountUuid": {
-			"type": "string",
-			"create": true,
-			"default": false
-		}
-	}
+    "resourceFields": {
+        "linkedAccountUuid": {
+            "type": "string",
+            "create": true,
+            "default": false
+        },
+        "description": {
+            "attributes": {
+                "scheduleUpdate": true
+            }
+        }
+    }
 }
-
-
