@@ -306,6 +306,11 @@ public class RegionServiceImpl implements RegionService {
             }
 
             String targetAgentUri = RegionUtil.getTargetAgentUri(localRegion.getName(), account.getName(), agent.getUuid(), targetResourceAccount.getUuid());
+            ExternalAgent externalAgent = RegionUtil.getExternalAgentByURI(targetRegion, targetAgentUri, jsonMapper);
+            if(externalAgent != null) {
+                log.info(String.format("got externalAgent %s", externalAgent.getId()));
+                RegionUtil.deleteExternalAgent(null, targetRegion, externalAgent);
+            }
             log.info(String.format("Creating external agent with uri [%s] in environment [%s] in region [%s]",
                     targetAgentUri,
                     cred.getEnvironmentName(),

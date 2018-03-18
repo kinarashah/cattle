@@ -210,11 +210,11 @@ public class RegionUtil {
 
     public static ExternalAgent createExternalAgent(Region targetRegion, String targetEnvName, Map<String, Object> params,
             JsonMapper jsonMapper) throws IOException {
-            ExternalAgent externalAgent = RegionUtil.getExternalAgentByURI(targetRegion, params.get(AgentConstants.FIELD_URI).toString(), jsonMapper);
-            if(externalAgent != null) {
-                log.info(String.format("got externalAgent %s", externalAgent.getId()));
-                RegionUtil.deleteExternalAgent(null, targetRegion, externalAgent);
-            }
+//            ExternalAgent externalAgent = RegionUtil.getExternalAgentByURI(targetRegion, params.get(AgentConstants.FIELD_URI).toString(), jsonMapper);
+//            if(externalAgent != null) {
+//                log.info(String.format("got externalAgent %s", externalAgent.getId()));
+//                RegionUtil.deleteExternalAgent(null, targetRegion, externalAgent);
+//            }
         String uri = String.format("%s/v2-beta/agents", getUrl(targetRegion));
         log.info(String.format("uri %s", uri));
         Request req = Request.Post(uri);
