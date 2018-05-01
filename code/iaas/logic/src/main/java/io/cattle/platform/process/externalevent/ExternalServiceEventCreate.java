@@ -1,9 +1,11 @@
 package io.cattle.platform.process.externalevent;
 
 import static io.cattle.platform.core.constants.ExternalEventConstants.*;
+import static io.cattle.platform.core.model.tables.ServiceTable.SERVICE;
 
 import io.cattle.platform.core.constants.CommonStatesConstants;
 import io.cattle.platform.core.constants.ExternalEventConstants;
+import io.cattle.platform.core.constants.ServiceConstants;
 import io.cattle.platform.core.dao.GenericResourceDao;
 import io.cattle.platform.core.dao.ServiceDao;
 import io.cattle.platform.core.dao.StackDao;
@@ -30,6 +32,7 @@ import io.github.ibuildthecloud.gdapi.factory.SchemaFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
@@ -41,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 @Named
 public class ExternalServiceEventCreate extends AbstractDefaultProcessHandler {
-
     private static final Logger log = LoggerFactory.getLogger(ExternalServiceEventCreate.class);
 
     @Inject
@@ -105,6 +107,21 @@ public class ExternalServiceEventCreate extends AbstractDefaultProcessHandler {
         if (stack == null) {
             log.info("Can't process service event. Could not get or create stack. Event: [{}]", event);
             return;
+        }
+        
+        List<Service> existingSvcs = objectManager.find(Service.class, 
+            SERVICE.NAME, serviceData.get(FIELD_NAME),
+            SERVICE.REMOVED, null, 
+            SERVICE.STACK_ID, stack.getId(), 
+            SERVICE.ACCOUNT_ID, event.getAccountId(),
+            SERVICE.KIND, ServiceConstants.KIND_KUBERNETES_SERVICE);
+
+        for(Service existingSvc : existingSvcs) {
+            if(existingSvc!=null && !existingSvc.getExternalId().equals(event.getExternalId())) {
+                log.info("Deleting existing kubernetes service {} with externalId {} and accountId {}",
+                            existingSvc.getName(), existingSvc.getExternalId(), existingSvc.getAccountId());
+                objectProcessManager.scheduleStandardProcess(StandardProcess.REMOVE, existingSvc, null);
+            }
         }
 
         Map<String, Object> service = new HashMap<String, Object>();
@@ -173,7 +190,7 @@ public class ExternalServiceEventCreate extends AbstractDefaultProcessHandler {
                     event.getAccountId());
             return;
         }
-
+        
         Map<String, Object> fields = DataUtils.getFields(svc);
         Map<String, Object> updates = new HashMap<String, Object>();
         for (Map.Entry<String, Object> resourceField : serviceData.entrySet()) {
