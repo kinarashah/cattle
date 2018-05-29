@@ -29,6 +29,9 @@ import java.util.Arrays;
 import java.util.List;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ServiceEventFilter extends AbstractDefaultResourceManagerFilter {
 
     private static List<String> invalidStates = Arrays.asList(CommonStatesConstants.REMOVED, CommonStatesConstants.REMOVING);
@@ -40,6 +43,8 @@ public class ServiceEventFilter extends AbstractDefaultResourceManagerFilter {
             ServiceConstants.STATE_CANCELED_UPGRADE,
             ServiceConstants.STATE_FINISHING_UPGRADE);
     public static final String VERIFY_AGENT = "CantVerifyHealthcheck";
+    
+    private static final Logger log = LoggerFactory.getLogger(ServiceEventFilter.class);
 
     @Inject
     ObjectManager objectManager;
@@ -104,12 +109,15 @@ public class ServiceEventFilter extends AbstractDefaultResourceManagerFilter {
         if (!healthcheckInstanceHostMap.getAccountId().equals(resourceAccId)) {
             throw new ClientVisibleException(ResponseCodes.FORBIDDEN, VERIFY_AGENT);
         }
+        
         if(!isNetworkStack(resourceAccId, healthcheckInstance.getInstanceId())) {
             if (event.getReportedHealth().startsWith("DOWN") && isNetworkUpgrading(resourceAccId)) {
                 throw new ClientVisibleException(ResponseCodes.CONFLICT);
+            } else if(event.getReportedHealth().startsWith("DOWN")) {
+                    log.info("KINARA down and getting id  "+ healthcheckInstance.getInstanceId());
             }
         }
-
+        
         event.setInstanceId(healthcheckInstance.getInstanceId());
         event.setHealthcheckInstanceId(healthcheckInstance.getId());
         event.setHostId(healthcheckInstanceHostMap.getHostId());
@@ -128,14 +136,17 @@ public class ServiceEventFilter extends AbstractDefaultResourceManagerFilter {
                 networkDriverService = service;
         }
         if (networkDriverService == null) {
+                log.info("KINARA networkDriverService false");
             return false;
         }
         List<Service> services = objectManager.find(Service.class, SERVICE.ACCOUNT_ID, accountId, SERVICE.REMOVED, null, SERVICE.STACK_ID,
                 networkDriverService.getStackId());
         for (Service service : services) {
             if (upgradingStates.contains(service.getState())) {
+                    log.info("NAIYA  throwing conflict state  ", service.getState());
                 return true;
             }
+            log.info("KINARA  service.getState()  "+ service.getState());
         }
         return false;
     }
