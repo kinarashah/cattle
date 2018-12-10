@@ -1,5 +1,16 @@
 package io.cattle.platform.iaas.api.auth.impl;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.cattle.platform.api.auth.Identity;
 import io.cattle.platform.api.auth.Policy;
 import io.cattle.platform.core.constants.AccountConstants;
@@ -21,17 +32,6 @@ import io.github.ibuildthecloud.gdapi.request.ApiRequest;
 import io.github.ibuildthecloud.gdapi.request.handler.AbstractApiRequestHandler;
 import io.github.ibuildthecloud.gdapi.util.ResponseCodes;
 import io.github.ibuildthecloud.gdapi.util.TransformationService;
-
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.inject.Inject;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ApiAuthenticator extends AbstractApiRequestHandler {
 
@@ -113,7 +113,7 @@ public class ApiAuthenticator extends AbstractApiRequestHandler {
         request.getServletContext().getResponse().addHeader(ACCOUNT_ID_HEADER, accountId);
         String userId = (String) ApiContext.getContext().getIdFormatter().formatId(objectManager.getType(Account.class), policy.getAuthenticatedAsAccountId());
         request.getServletContext().getResponse().addHeader(USER_ID_HEADER, userId);
-        request.getServletContext().getResponse().addHeader(ACCOUNT_KIND_HEADER, authorizedAccount.getKind());
+        request.getServletContext().getResponse().addHeader(ACCOUNT_KIND_HEADER, authorizedAccount.getName());
         ApiContext.getContext().setPolicy(policy);
     }
 
