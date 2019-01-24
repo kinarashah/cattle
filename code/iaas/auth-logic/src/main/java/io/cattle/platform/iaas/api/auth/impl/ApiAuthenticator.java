@@ -114,7 +114,7 @@ public class ApiAuthenticator extends AbstractApiRequestHandler {
         String userId = (String) ApiContext.getContext().getIdFormatter().formatId(objectManager.getType(Account.class), policy.getAuthenticatedAsAccountId());
         request.getServletContext().getResponse().addHeader(USER_ID_HEADER, userId);
         request.getServletContext().getResponse().addHeader(ACCOUNT_KIND_HEADER, authorizedAccount.getName());
-        log.info("from cattle "+authorizedAccount.getName());
+//        log.info("from cattle "+authorizedAccount.getName());
         ApiContext.getContext().setPolicy(policy);
     }
 
